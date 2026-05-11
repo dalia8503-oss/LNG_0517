@@ -160,16 +160,16 @@ elif st.session_state.role == "admin":
     # 2. 진행자 컨트롤 패널
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("🔍 줌아웃 (조금 더 보여주기)"):
+        if st.button("🔍 조금만 더 보여줄까요~?"):
             if state["zoom_level"] < 3:
                 state["zoom_level"] += 1
                 save_state(state)
                 st.rerun()
     with col2:
-        if st.button("💡 힌트 텍스트 보여주기"):
+        if st.button("💡 힌트 좀 드릴까요~?!"):
             st.info(f"힌트: {current_pokemon['hint']}")
     with col3:
-        if st.button("▶️ 다음 문제로 넘어가기"):
+        if st.button("▶️ 다음은 누구일까요?!"):
             state["current_q"] += 1
             state["zoom_level"] = 1 # 다음 문제는 다시 초근접으로
             save_state(state)
@@ -179,7 +179,7 @@ elif st.session_state.role == "admin":
     
     # 3. 실시간 순위판 (현재 문제 정답자)
     st.subheader(f"🏆 {current_q_idx + 1}번 문제 정답자 랭킹")
-    if st.button("🔄 순위표 새로고침"):
+    if st.button("🔄 누가 제일 빨랐을까요~?"):
         st.rerun()
         
     q_key = str(current_q_idx)
