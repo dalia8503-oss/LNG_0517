@@ -6,6 +6,7 @@ import json
 import os
 import time
 import base64
+import random
 
 def play_background_music(file_path):
     if not os.path.exists(file_path):
@@ -22,13 +23,14 @@ def play_background_music(file_path):
 # 모든 참가자와 진행자가 진행 상황(현재 문제 번호 등)을 공유하기 위한 파일입니다.
 DATA_FILE = "live_game_state.json"
 
-def init_game_state():
+def init_game_state(total=50):
     if not os.path.exists(DATA_FILE):
         default_state = {
-            "current_q": 0,       # 현재 진행 중인 문제 인덱스
-            "zoom_level": 1,      # 현재 줌 단계 (1:초근접, 2:중간, 3:전체)
-            "submissions": {},    # 문제별 제출 기록 {"0": [], "1": []}
-            "hall_of_fame": []    # 명예의 전당 (선물 수령자)
+            "current_q": 0,
+            "zoom_level": 1,
+            "submissions": {},
+            "hall_of_fame": [],
+            "quiz_order": random.sample(range(total), total)
         }
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(default_state, f, ensure_ascii=False)
@@ -36,7 +38,11 @@ def init_game_state():
 def load_state():
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            state = json.load(f)
+        if "quiz_order" not in state:
+            state["quiz_order"] = random.sample(range(50), 50)
+            save_state(state)
+        return state
     except:
         init_game_state()
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -206,7 +212,7 @@ elif st.session_state.role == "admin":
             st.rerun()
         st.stop()
 
-    current_pokemon = pokemon_db[current_q_idx]
+    current_pokemon = pokemon_db[state["quiz_order"][current_q_idx]]
 
     col_title, col_reset = st.columns([4, 1])
     with col_title:
@@ -216,7 +222,7 @@ elif st.session_state.role == "admin":
         if st.button("🔄 전체 초기화", type="secondary"):
             if os.path.exists(DATA_FILE):
                 os.remove(DATA_FILE)
-            init_game_state()
+            init_game_state(len(pokemon_db))
             st.rerun()
 
     # 1. 메인 이미지 표시 구역
@@ -300,7 +306,7 @@ elif st.session_state.role == "player":
         st.info("모든 퀴즈가 종료되었습니다. 감사합니다!")
         st.stop()
         
-    current_pokemon = pokemon_db[current_q_idx]
+    current_pokemon = pokemon_db[state["quiz_order"][current_q_idx]]
     q_key = str(current_q_idx)
     
     st.markdown("---")
