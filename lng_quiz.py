@@ -5,6 +5,18 @@ from io import BytesIO
 import json
 import os
 import time
+import base64
+
+def play_background_music(file_path):
+    if not os.path.exists(file_path):
+        return
+    with open(file_path, "rb") as f:
+        data = base64.b64encode(f.read()).decode()
+    st.markdown(f"""
+        <audio autoplay loop style="display:none">
+            <source src="data:audio/mp3;base64,{data}" type="audio/mp3">
+        </audio>
+    """, unsafe_allow_html=True)
 
 # --- 1. 공용 데이터 저장소 (JSON) 관리 ---
 # 모든 참가자와 진행자가 진행 상황(현재 문제 번호 등)을 공유하기 위한 파일입니다.
@@ -83,6 +95,9 @@ def get_pokemon_image(pokemon_id, zoom_level):
 # ==========================================
 # 화면 로직: 1. 로그인 화면
 # ==========================================
+MUSIC_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "우리는 모두 친구.mp3")
+play_background_music(MUSIC_FILE)
+
 if st.session_state.role is None:
     st.title("⚡ 가족 초청 퀴즈 대회 ⚡")
     st.markdown("스크린의 문제를 보고 가장 먼저 정답을 맞혀보세요!")
