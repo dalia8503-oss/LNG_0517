@@ -167,9 +167,18 @@ elif st.session_state.role == "admin":
         st.stop()
 
     current_pokemon = pokemon_db[current_q_idx]
-    
-    st.title(f"🔍 [문제 {current_q_idx + 1}] 이게 누구게?")
-    
+
+    col_title, col_reset = st.columns([4, 1])
+    with col_title:
+        st.title(f"🔍 [문제 {current_q_idx + 1}] 이게 누구게?")
+    with col_reset:
+        st.write("")
+        if st.button("🔄 전체 초기화", type="secondary"):
+            if os.path.exists(DATA_FILE):
+                os.remove(DATA_FILE)
+            init_game_state()
+            st.rerun()
+
     # 1. 메인 이미지 표시 구역
     with st.container():
         display_img = get_pokemon_image(current_pokemon["id"], state["zoom_level"])
