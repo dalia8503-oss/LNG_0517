@@ -100,6 +100,9 @@ play_background_music(MUSIC_FILE)
 
 if st.session_state.role is None:
     st.title("⚡ 가족 초청 퀴즈 대회 ⚡")
+    pokemon_img = os.path.join(os.path.dirname(os.path.abspath(__file__)), "포켓몬스터.jpg")
+    if os.path.exists(pokemon_img):
+        st.image(pokemon_img, use_column_width=True)
     st.markdown("스크린의 문제를 보고 가장 먼저 정답을 맞혀보세요!")
     
     with st.form("login_form"):
