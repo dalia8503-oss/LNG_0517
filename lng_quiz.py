@@ -249,8 +249,14 @@ elif st.session_state.role == "admin":
             st.info(f"힌트: {current_pokemon['hint']}")
     with col3:
         if st.button("▶️ 다음은 누구일까요?!"):
+            # 현재 문제 1등을 명예의 전당에 자동 등록
+            q_key_now = str(current_q_idx)
+            for sub in state["submissions"].get(q_key_now, []):
+                if sub['id'] not in state["hall_of_fame"]:
+                    state["hall_of_fame"].append(sub['id'])
+                    break
             state["current_q"] += 1
-            state["zoom_level"] = 1 # 다음 문제는 다시 초근접으로
+            state["zoom_level"] = 1
             save_state(state)
             st.rerun()
 
@@ -278,17 +284,26 @@ elif st.session_state.role == "admin":
                 st.markdown(f"🌟 [명예의 전당] {user_info} - 정답 제출!")
             else:
                 if rank == 1:
-                    st.success(f"🥇 1등: {user_info} 🎁 (현재 1등!)")
-                    # 1등에게 선물 주고 명예의 전당으로 보내는 버튼
-                    if st.button(f"'{sub['name']}'님 명예의 전당 등록 및 1등 제외", key=f"hof_{sub['id']}"):
-                        state["hall_of_fame"].append(sub['id'])
-                        save_state(state)
-                        st.rerun()
+                    st.success(f"🥇 1등: {user_info} 🎁 (다음 문제부터 명예의 전당 이동)")
                 elif rank == 2:
                     st.warning(f"🥈 2등: {user_info}")
                 else:
                     st.write(f"🔹 {rank}등: {user_info}")
                 rank += 1
+
+    st.markdown("---")
+    st.subheader("🌟 명예의 전당 (시상 대상자)")
+    if not state["hall_of_fame"]:
+        st.write("아직 없습니다.")
+    else:
+        id_to_name = {}
+        for q_subs in state["submissions"].values():
+            for sub in q_subs:
+                id_to_name[sub['id']] = sub['name']
+        for i, uid in enumerate(state["hall_of_fame"], 1):
+            name = id_to_name.get(uid, uid)
+            phone = uid.split('_')[1] if '_' in uid else ''
+            st.write(f"🏅 {i}. {name} ({phone})")
 
 # ==========================================
 # 화면 로직: 3. 참가자 (Player) 화면 - 스마트폰용
