@@ -99,11 +99,35 @@ MUSIC_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "우리는
 play_background_music(MUSIC_FILE)
 
 if st.session_state.role is None:
-    st.title("⚡ 가족 초청 퀴즈 대회 ⚡")
+    st.markdown("""
+        <style>
+        h1 { font-size: 1.75rem !important; }
+        p, div, label, .stMarkdown { font-size: 0.98rem !important; }
+        </style>
+        <h1 style="text-align:center;">나는 누구일까요~?</h1>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div style="text-align:center; position:relative; width:180px; height:180px; margin:0 auto 10px auto;">
+            <img id="pika-front"
+                 src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
+                 style="width:180px; position:absolute; top:0; left:0;
+                        animation: showFront 2s step-end infinite;" />
+            <img id="pika-back"
+                 src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/25.png"
+                 style="width:180px; position:absolute; top:0; left:0;
+                        animation: showBack 2s step-end infinite;" />
+        </div>
+        <style>
+        @keyframes showFront { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+        @keyframes showBack  { 0%,49%{opacity:0} 50%,100%{opacity:1} }
+        </style>
+    """, unsafe_allow_html=True)
+
     pokemon_img = os.path.join(os.path.dirname(os.path.abspath(__file__)), "포켓몬스터.jpg")
     if os.path.exists(pokemon_img):
         st.image(pokemon_img, use_column_width=True)
-    st.markdown("스크린의 문제를 보고 가장 먼저 정답을 맞혀보세요!")
+    st.markdown("<p style='text-align:center;'>스크린의 문제를 보고 가장 먼저 정답을 맞혀보세요!</p>", unsafe_allow_html=True)
     
     with st.form("login_form"):
         name_input = st.text_input("참가자 이름 (또는 닉네임)", placeholder="예: 홍길동")
