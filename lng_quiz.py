@@ -1,3 +1,14 @@
+import subprocess, sys
+
+def _install(pkg):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", pkg],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+for _pip, _mod in [("streamlit","streamlit"),("Pillow","PIL"),("requests","requests")]:
+    try: __import__(_mod)
+    except ImportError:
+        print(f"{_pip} 설치 중..."); _install(_pip)
+
 import streamlit as st
 from PIL import Image
 import requests
