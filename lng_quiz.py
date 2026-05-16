@@ -241,6 +241,8 @@ if st.session_state.role is None:
 # 화면 로직: 2. 진행자 (Host) 화면 - 프로젝터용
 # ==========================================
 elif st.session_state.role == "admin":
+    st_autorefresh(interval=3000, key="admin_refresh")
+
     # 실시간 상태 불러오기
     state = load_state()
     current_q_idx = state["current_q"]
