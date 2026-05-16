@@ -68,21 +68,32 @@ def init_game_state(total=50):
             json.dump(default_state, f, ensure_ascii=False)
 
 def load_state():
-    try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            state = json.load(f)
-        if "quiz_order" not in state:
-            state["quiz_order"] = random.sample(range(50), 50)
-            save_state(state)
-        return state
-    except:
-        init_game_state()
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+    for _ in range(5):  # 충돌 시 최대 5회 재시도
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                content = f.read()
+            state = json.loads(content)
+            if "quiz_order" not in state:
+                state["quiz_order"] = random.sample(range(50), 50)
+                save_state(state)
+            if "connected_users" not in state:
+                state["connected_users"] = {}
+            return state
+        except (json.JSONDecodeError, FileNotFoundError):
+            time.sleep(0.1)
+    # 모두 실패하면 초기화
+    if os.path.exists(DATA_FILE):
+        os.remove(DATA_FILE)
+    init_game_state()
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def save_state(state):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
+    # 임시 파일에 먼저 쓴 뒤 원자적으로 교체 (동시 쓰기 충돌 방지)
+    tmp = DATA_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=4)
+    os.replace(tmp, DATA_FILE)
 
 init_game_state() # 시작 시 파일 초기화 확인
 
