@@ -61,7 +61,8 @@ def init_game_state(total=50):
             "zoom_level": 1,
             "submissions": {},
             "hall_of_fame": [],
-            "quiz_order": random.sample(range(total), total)
+            "quiz_order": random.sample(range(total), total),
+            "connected_users": {}
         }
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(default_state, f, ensure_ascii=False)
@@ -298,6 +299,17 @@ elif st.session_state.role == "admin":
                 st.rerun()
 
     with right:
+        # 접속자 목록 (10초 이내 heartbeat 기록된 유저)
+        connected = state.get("connected_users", {})
+        now = time.time()
+        active = [v["name"] for v in connected.values() if now - v.get("last_seen", 0) < 10]
+        st.subheader(f"🟢 접속 중 ({len(active)}명)")
+        if active:
+            st.write("  ".join(f"**{n}**" for n in active))
+        else:
+            st.write("아직 아무도 없습니다.")
+
+        st.markdown("---")
         st.subheader(f"🏆 {current_q_idx + 1}번 문제 정답자 랭킹")
         if st.button("🔄 누가 제일 빨랐을까요~?"):
             st.rerun()
@@ -343,6 +355,15 @@ elif st.session_state.role == "player":
     # 최신 상태를 불러와서 현재 문제 번호 확인
     state = load_state()
     current_q_idx = state["current_q"]
+
+    # 접속 중 heartbeat 기록
+    if "connected_users" not in state:
+        state["connected_users"] = {}
+    state["connected_users"][st.session_state.user_id] = {
+        "name": st.session_state.user_name,
+        "last_seen": time.time()
+    }
+    save_state(state)
 
     # 참가자 UI 헤더
     st.title("모바일 답안 입력기 📱")
