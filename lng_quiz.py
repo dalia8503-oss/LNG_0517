@@ -375,16 +375,24 @@ elif st.session_state.role == "admin":
                     rank += 1
 
         st.markdown("---")
-        st.subheader("🌟 명예의 전당 (시상 대상자)")
+        st.subheader("🌟 명예의 전당")
         if not hall_of_fame:
             st.write("아직 없습니다.")
         else:
-            for i, entry in enumerate(hall_of_fame, 1):
-                if isinstance(entry, dict):
-                    name = entry.get('name', entry.get('id', ''))
-                    phone = entry['id'].split('_')[1] if '_' in entry['id'] else ''
-                    q_num = entry.get('q_num', '?')
-                    st.write(f"🏅 {i}. {name} ({phone}) — {q_num}번 문제 1등")
+            # 유저별 1등 횟수 집계
+            tally = {}
+            for entry in hall_of_fame:
+                if not isinstance(entry, dict):
+                    continue
+                uid = entry['id']
+                if uid not in tally:
+                    tally[uid] = {"name": entry.get('name', uid), "count": 0}
+                tally[uid]["count"] += 1
+            # 1등 횟수 내림차순 정렬
+            sorted_tally = sorted(tally.items(), key=lambda x: x[1]["count"], reverse=True)
+            for i, (uid, info) in enumerate(sorted_tally, 1):
+                phone = uid.split('_')[1] if '_' in uid else ''
+                st.write(f"🏅 {i}. {info['name']} ({phone}) — 1등 {info['count']}회")
 
 # ==========================================
 # 화면 로직: 3. 참가자 (Player) 화면 - 스마트폰용
