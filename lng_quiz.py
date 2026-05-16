@@ -440,7 +440,12 @@ elif st.session_state.role == "player":
     answer_revealed = state["zoom_level"] == 3
 
     if user_already_solved:
-        st.success("✅ 정답을 제출하셨습니다! 프로젝터 화면의 결과를 확인해주세요.")
+        # 현재 문제에서 내 순위 계산
+        subs = state["submissions"].get(q_key, [])
+        my_rank = next((i + 1 for i, s in enumerate(subs) if s["id"] == st.session_state.user_id), None)
+        rank_emoji = {1: "🥇", 2: "🥈", 3: "🥉"}.get(my_rank, "🔹")
+        rank_text = f"{my_rank}등" if my_rank else "-"
+        st.success(f"✅ 정답! 현재 **{rank_emoji} {rank_text}** 입니다!")
     elif answer_revealed:
         st.warning("🔓 정답이 공개되었습니다. 이번 문제는 종료되었어요!")
     else:
