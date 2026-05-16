@@ -286,9 +286,12 @@ elif st.session_state.role == "admin":
             if st.button("▶️ 다음은 누구일까요?!"):
                 q_key_now = str(current_q_idx)
                 for sub in state["submissions"].get(q_key_now, []):
-                    if sub['id'] not in state["hall_of_fame"]:
-                        state["hall_of_fame"].append(sub['id'])
-                        break
+                    state["hall_of_fame"].append({
+                        "id": sub['id'],
+                        "name": sub['name'],
+                        "q_num": current_q_idx + 1
+                    })
+                    break
                 state["current_q"] += 1
                 state["zoom_level"] = 1
                 save_state(state)
@@ -299,14 +302,16 @@ elif st.session_state.role == "admin":
         if st.button("🔄 누가 제일 빨랐을까요~?"):
             st.rerun()
 
+        hof_ids_this_q = {e['id'] for e in hall_of_fame if isinstance(e, dict) and e.get('q_num') == current_q_idx + 1}
+
         if not submissions:
             st.write("아직 정답자가 없습니다...")
         else:
             rank = 1
             for sub in submissions:
                 user_info = f"{sub['name']} ({sub['id'].split('_')[1]})"
-                if sub['id'] in hall_of_fame:
-                    st.markdown(f"🌟 **[명예의 전당]** {user_info}")
+                if sub['id'] in hof_ids_this_q:
+                    st.markdown(f"🌟 **[명예의 전당 등록]** {user_info}")
                 else:
                     if rank == 1:
                         st.success(f"🥇 1등: {user_info} 🎁")
@@ -321,14 +326,12 @@ elif st.session_state.role == "admin":
         if not hall_of_fame:
             st.write("아직 없습니다.")
         else:
-            id_to_name = {}
-            for q_subs in state["submissions"].values():
-                for sub in q_subs:
-                    id_to_name[sub['id']] = sub['name']
-            for i, uid in enumerate(hall_of_fame, 1):
-                name = id_to_name.get(uid, uid)
-                phone = uid.split('_')[1] if '_' in uid else ''
-                st.write(f"🏅 {i}. {name} ({phone})")
+            for i, entry in enumerate(hall_of_fame, 1):
+                if isinstance(entry, dict):
+                    name = entry.get('name', entry.get('id', ''))
+                    phone = entry['id'].split('_')[1] if '_' in entry['id'] else ''
+                    q_num = entry.get('q_num', '?')
+                    st.write(f"🏅 {i}. {name} ({phone}) — {q_num}번 문제 1등")
 
 # ==========================================
 # 화면 로직: 3. 참가자 (Player) 화면 - 스마트폰용
