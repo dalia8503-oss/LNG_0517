@@ -264,7 +264,9 @@ elif st.session_state.role == "admin":
 
         display_img = get_pokemon_image(current_pokemon["id"], state["zoom_level"])
         if display_img:
-            st.image(display_img, use_column_width=True)
+            img_col, _ = st.columns([4, 1])
+            with img_col:
+                st.image(display_img, use_column_width=True)
         if state["zoom_level"] == 3:
             st.success(f"정답은 '{current_pokemon['name']}' 였습니다! 🎉")
 
