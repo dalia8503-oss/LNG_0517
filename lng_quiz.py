@@ -10,6 +10,7 @@ for _pip, _mod in [("streamlit","streamlit"),("Pillow","PIL"),("requests","reque
         print(f"{_pip} 설치 중..."); _install(_pip)
 
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image
 import requests
 from io import BytesIO
@@ -19,16 +20,34 @@ import time
 import base64
 import random
 
-def play_background_music(file_path):
-    if not os.path.exists(file_path):
-        return
-    with open(file_path, "rb") as f:
-        data = base64.b64encode(f.read()).decode()
-    st.markdown(f"""
-        <audio autoplay loop style="display:none">
-            <source src="data:audio/mp3;base64,{data}" type="audio/mp3">
-        </audio>
-    """, unsafe_allow_html=True)
+_MUSIC_URL = (
+    "https://raw.githubusercontent.com/dalia8503-oss/lng_0517/main/"
+    "%EC%9A%B0%EB%A6%AC%EB%8A%94%20%EB%AA%A8%EB%91%90%20%EC%B9%9C%EA%B5%AC.mp3"
+)
+_MUSIC_HTML = f"""
+    <style>
+      body {{ margin:0; padding:4px; background:transparent; }}
+      #btn {{
+        display:none; padding:7px 16px; background:#2563eb; color:#fff;
+        border:none; border-radius:20px; cursor:pointer; font-size:13px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.2);
+      }}
+    </style>
+    <audio id="bgm" loop>
+      <source src="{_MUSIC_URL}" type="audio/mp3">
+    </audio>
+    <button id="btn" onclick="document.getElementById('bgm').play();this.style.display='none';">
+      🎵 음악 켜기
+    </button>
+    <script>
+      document.getElementById('bgm').play().catch(function() {{
+        document.getElementById('btn').style.display = 'inline-block';
+      }});
+    </script>
+"""
+
+def play_background_music(_=None):
+    components.html(_MUSIC_HTML, height=50)
 
 # --- 1. 공용 데이터 저장소 (JSON) 관리 ---
 # 모든 참가자와 진행자가 진행 상황(현재 문제 번호 등)을 공유하기 위한 파일입니다.
@@ -66,7 +85,7 @@ def save_state(state):
 init_game_state() # 시작 시 파일 초기화 확인
 
 # --- 2. 기본 설정 및 포켓몬 데이터 ---
-st.set_page_config(page_title="가족 초청 포켓몬 퀴즈!", page_icon="⚡", layout="centered")
+st.set_page_config(page_title="가족 초청 포켓몬 퀴즈!", page_icon="⚡", layout="wide")
 
 pokemon_db = [
     {"name": "피카츄",    "id": 25,  "hint": "전기를 찌릿찌릿! 지우의 영원한 단짝이야."},
@@ -224,97 +243,89 @@ elif st.session_state.role == "admin":
         st.stop()
 
     current_pokemon = pokemon_db[state["quiz_order"][current_q_idx]]
-
-    col_title, col_reset = st.columns([4, 1])
-    with col_title:
-        st.title(f"🔍 [문제 {current_q_idx + 1}] 이게 누구게?")
-    with col_reset:
-        st.write("")
-        if st.button("🔄 전체 초기화", type="secondary"):
-            if os.path.exists(DATA_FILE):
-                os.remove(DATA_FILE)
-            init_game_state(len(pokemon_db))
-            st.rerun()
-
-    # 1. 메인 이미지 표시 구역
-    with st.container():
-        display_img = get_pokemon_image(current_pokemon["id"], state["zoom_level"])
-        if display_img:
-            st.image(display_img, use_column_width=True)
-            
-        if state["zoom_level"] == 3:
-            st.success(f"정답은 '{current_pokemon['name']}' 였습니다! 🎉")
-
-    st.markdown("---")
-    
-    # 2. 진행자 컨트롤 패널
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("🔍 조금만 더 보여줄까요~?"):
-            if state["zoom_level"] < 3:
-                state["zoom_level"] += 1
-                save_state(state)
-                st.rerun()
-    with col2:
-        if st.button("💡 힌트 좀 드릴까요~?!"):
-            st.info(f"힌트: {current_pokemon['hint']}")
-    with col3:
-        if st.button("▶️ 다음은 누구일까요?!"):
-            # 현재 문제 1등을 명예의 전당에 자동 등록
-            q_key_now = str(current_q_idx)
-            for sub in state["submissions"].get(q_key_now, []):
-                if sub['id'] not in state["hall_of_fame"]:
-                    state["hall_of_fame"].append(sub['id'])
-                    break
-            state["current_q"] += 1
-            state["zoom_level"] = 1
-            save_state(state)
-            st.rerun()
-
-    st.markdown("---")
-    
-    # 3. 실시간 순위판 (현재 문제 정답자)
-    st.subheader(f"🏆 {current_q_idx + 1}번 문제 정답자 랭킹")
-    if st.button("🔄 누가 제일 빨랐을까요~?"):
-        st.rerun()
-        
     q_key = str(current_q_idx)
     submissions = state["submissions"].get(q_key, [])
     hall_of_fame = state["hall_of_fame"]
-    
-    if not submissions:
-        st.write("아직 정답자가 없습니다...")
-    else:
-        # 이미 제출된 기록을 화면에 순서대로 표시
-        rank = 1
-        for sub in submissions:
-            user_info = f"{sub['name']} ({sub['id'].split('_')[1]})"
-            
-            # 이미 1등을 해서 명예의 전당에 있는 사람은 회색 처리
-            if sub['id'] in hall_of_fame:
-                st.markdown(f"🌟 [명예의 전당] {user_info} - 정답 제출!")
-            else:
-                if rank == 1:
-                    st.success(f"🥇 1등: {user_info} 🎁 (다음 문제부터 명예의 전당 이동)")
-                elif rank == 2:
-                    st.warning(f"🥈 2등: {user_info}")
-                else:
-                    st.write(f"🔹 {rank}등: {user_info}")
-                rank += 1
 
-    st.markdown("---")
-    st.subheader("🌟 명예의 전당 (시상 대상자)")
-    if not state["hall_of_fame"]:
-        st.write("아직 없습니다.")
-    else:
-        id_to_name = {}
-        for q_subs in state["submissions"].values():
-            for sub in q_subs:
-                id_to_name[sub['id']] = sub['name']
-        for i, uid in enumerate(state["hall_of_fame"], 1):
-            name = id_to_name.get(uid, uid)
-            phone = uid.split('_')[1] if '_' in uid else ''
-            st.write(f"🏅 {i}. {name} ({phone})")
+    # ── 2컬럼: 왼쪽(퀴즈) / 오른쪽(랭킹+명예의 전당) ──
+    left, right = st.columns([3, 2])
+
+    with left:
+        col_title, col_reset = st.columns([4, 1])
+        with col_title:
+            st.title(f"🔍 [문제 {current_q_idx + 1}] 이게 누구게?")
+        with col_reset:
+            st.write("")
+            if st.button("🔄 전체 초기화", type="secondary"):
+                if os.path.exists(DATA_FILE):
+                    os.remove(DATA_FILE)
+                init_game_state(len(pokemon_db))
+                st.rerun()
+
+        display_img = get_pokemon_image(current_pokemon["id"], state["zoom_level"])
+        if display_img:
+            st.image(display_img, use_column_width=True)
+        if state["zoom_level"] == 3:
+            st.success(f"정답은 '{current_pokemon['name']}' 였습니다! 🎉")
+
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("🔍 조금만 더 보여줄까요~?"):
+                if state["zoom_level"] < 3:
+                    state["zoom_level"] += 1
+                    save_state(state)
+                    st.rerun()
+        with col2:
+            if st.button("💡 힌트 좀 드릴까요~?!"):
+                st.info(f"힌트: {current_pokemon['hint']}")
+        with col3:
+            if st.button("▶️ 다음은 누구일까요?!"):
+                q_key_now = str(current_q_idx)
+                for sub in state["submissions"].get(q_key_now, []):
+                    if sub['id'] not in state["hall_of_fame"]:
+                        state["hall_of_fame"].append(sub['id'])
+                        break
+                state["current_q"] += 1
+                state["zoom_level"] = 1
+                save_state(state)
+                st.rerun()
+
+    with right:
+        st.subheader(f"🏆 {current_q_idx + 1}번 문제 정답자 랭킹")
+        if st.button("🔄 누가 제일 빨랐을까요~?"):
+            st.rerun()
+
+        if not submissions:
+            st.write("아직 정답자가 없습니다...")
+        else:
+            rank = 1
+            for sub in submissions:
+                user_info = f"{sub['name']} ({sub['id'].split('_')[1]})"
+                if sub['id'] in hall_of_fame:
+                    st.markdown(f"🌟 **[명예의 전당]** {user_info}")
+                else:
+                    if rank == 1:
+                        st.success(f"🥇 1등: {user_info} 🎁")
+                    elif rank == 2:
+                        st.warning(f"🥈 2등: {user_info}")
+                    else:
+                        st.write(f"🔹 {rank}등: {user_info}")
+                    rank += 1
+
+        st.markdown("---")
+        st.subheader("🌟 명예의 전당 (시상 대상자)")
+        if not hall_of_fame:
+            st.write("아직 없습니다.")
+        else:
+            id_to_name = {}
+            for q_subs in state["submissions"].values():
+                for sub in q_subs:
+                    id_to_name[sub['id']] = sub['name']
+            for i, uid in enumerate(hall_of_fame, 1):
+                name = id_to_name.get(uid, uid)
+                phone = uid.split('_')[1] if '_' in uid else ''
+                st.write(f"🏅 {i}. {name} ({phone})")
 
 # ==========================================
 # 화면 로직: 3. 참가자 (Player) 화면 - 스마트폰용
