@@ -270,9 +270,13 @@ elif st.session_state.role == "admin":
         with col_reset:
             st.write("")
             if st.button("🔄 전체 초기화", type="secondary"):
+                connected_backup = state.get("connected_users", {})
                 if os.path.exists(DATA_FILE):
                     os.remove(DATA_FILE)
                 init_game_state(len(pokemon_db))
+                new_state = load_state()
+                new_state["connected_users"] = connected_backup
+                save_state(new_state)
                 st.rerun()
 
         display_img = get_pokemon_image(current_pokemon["id"], state["zoom_level"])
