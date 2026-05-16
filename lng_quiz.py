@@ -317,12 +317,30 @@ elif st.session_state.role == "admin":
         # 접속자 목록 (10초 이내 heartbeat 기록된 유저)
         connected = state.get("connected_users", {})
         now = time.time()
-        active = [v["name"] for v in connected.values() if now - v.get("last_seen", 0) < 10]
-        st.subheader(f"🟢 접속 중 ({len(active)}명)")
-        if active:
-            st.write("  ".join(f"**{n}**" for n in active))
-        else:
-            st.write("아직 아무도 없습니다.")
+        active_users = {uid: v for uid, v in connected.items() if now - v.get("last_seen", 0) < 10}
+
+        # 현재 문제 정답 제출한 유저 ID 목록
+        submitted_ids = {sub["id"] for sub in submissions}
+
+        answered = [v["name"] for uid, v in active_users.items() if uid in submitted_ids]
+        waiting  = [v["name"] for uid, v in active_users.items() if uid not in submitted_ids]
+
+        st.subheader(f"🟢 접속 중 ({len(active_users)}명)")
+        col_a, col_w = st.columns(2)
+        with col_a:
+            st.markdown(f"**✅ 제출 완료 ({len(answered)}명)**")
+            if answered:
+                for name in answered:
+                    st.markdown(f"<span style='color:#4ade80'>● {name}</span>", unsafe_allow_html=True)
+            else:
+                st.caption("없음")
+        with col_w:
+            st.markdown(f"**⏳ 미제출 ({len(waiting)}명)**")
+            if waiting:
+                for name in waiting:
+                    st.markdown(f"<span style='color:#fb923c'>● {name}</span>", unsafe_allow_html=True)
+            else:
+                st.caption("없음")
 
         st.markdown("---")
         st.subheader(f"🏆 {current_q_idx + 1}번 문제 정답자 랭킹")
