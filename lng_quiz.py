@@ -429,10 +429,12 @@ elif st.session_state.role == "player":
                 user_already_solved = True
                 break
                 
+    answer_revealed = state["zoom_level"] == 3
+
     if user_already_solved:
         st.success("✅ 정답을 제출하셨습니다! 프로젝터 화면의 결과를 확인해주세요.")
-        if st.button("현재 문제 진행상황 새로고침 🔄"):
-            st.rerun()
+    elif answer_revealed:
+        st.warning("🔓 정답이 공개되었습니다. 이번 문제는 종료되었어요!")
     else:
         # 답안 입력 폼
         with st.form(key=f"answer_form_{current_q_idx}"):
