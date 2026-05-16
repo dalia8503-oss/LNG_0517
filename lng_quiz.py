@@ -264,7 +264,7 @@ elif st.session_state.role == "admin":
 
         display_img = get_pokemon_image(current_pokemon["id"], state["zoom_level"])
         if display_img:
-            img_col, _ = st.columns([4, 1])
+            img_col, _ = st.columns([3.2, 1.8])
             with img_col:
                 st.image(display_img, use_column_width=True)
         if state["zoom_level"] == 3:
