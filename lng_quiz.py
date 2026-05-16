@@ -89,8 +89,8 @@ def load_state():
         return json.load(f)
 
 def save_state(state):
-    # 임시 파일에 먼저 쓴 뒤 원자적으로 교체 (동시 쓰기 충돌 방지)
-    tmp = DATA_FILE + ".tmp"
+    # 프로세스별 고유 임시 파일 사용 → 동시 쓰기 충돌 완전 방지
+    tmp = f"{DATA_FILE}.{os.getpid()}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=4)
     os.replace(tmp, DATA_FILE)
@@ -281,13 +281,19 @@ elif st.session_state.role == "admin":
                 save_state(new_state)
                 st.rerun()
 
+        if state["zoom_level"] == 3:
+            st.markdown(
+                f"<div style='background:#166534;color:#bbf7d0;border-radius:10px;"
+                f"padding:8px 16px;font-size:1.2rem;font-weight:700;margin-bottom:8px;'>"
+                f"🎉 정답: {current_pokemon['name']}</div>",
+                unsafe_allow_html=True
+            )
+
         display_img = get_pokemon_image(current_pokemon["id"], state["zoom_level"])
         if display_img:
             img_col, _ = st.columns([3.2, 1.8])
             with img_col:
                 st.image(display_img, use_column_width=True)
-        if state["zoom_level"] == 3:
-            st.success(f"정답은 '{current_pokemon['name']}' 였습니다! 🎉")
 
         st.markdown("---")
         col1, col2, col3 = st.columns(3)
