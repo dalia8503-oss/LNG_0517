@@ -11,6 +11,7 @@ for _pip, _mod in [("streamlit","streamlit"),("Pillow","PIL"),("requests","reque
 
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit_autorefresh import st_autorefresh
 from PIL import Image
 import requests
 from io import BytesIO
@@ -333,10 +334,13 @@ elif st.session_state.role == "admin":
 # 화면 로직: 3. 참가자 (Player) 화면 - 스마트폰용
 # ==========================================
 elif st.session_state.role == "player":
+    # 3초마다 자동 새로고침 (관리자가 다음 문제로 넘어가면 자동 반영)
+    st_autorefresh(interval=3000, key="player_refresh")
+
     # 최신 상태를 불러와서 현재 문제 번호 확인
     state = load_state()
     current_q_idx = state["current_q"]
-    
+
     # 참가자 UI 헤더
     st.title("모바일 답안 입력기 📱")
     st.write(f"안녕하세요, **{st.session_state.user_name}**님!")
@@ -394,6 +398,4 @@ elif st.session_state.role == "player":
                     st.warning("앗, 오답입니다! 화면을 다시 잘 보고 입력해주세요. 🤔")
 
     st.markdown("---")
-    st.caption("진행자가 다음 문제로 넘어가면 아래 버튼을 누르세요.")
-    if st.button("다음 문제로 업데이트 🔄"):
-        st.rerun()
+    st.caption("진행자가 다음 문제로 넘어가면 자동으로 업데이트됩니다. (3초 간격)")
