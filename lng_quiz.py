@@ -53,6 +53,13 @@ def play_background_music(_=None):
 # --- 1. 공용 데이터 저장소 (JSON) 관리 ---
 # 모든 참가자와 진행자가 진행 상황(현재 문제 번호 등)을 공유하기 위한 파일입니다.
 DATA_FILE = "live_game_state.json"
+HEARTBEAT_FILE = "heartbeat.json"   # 접속자 기록 전용 (게임 상태와 분리)
+
+def _atomic_write(filepath, data):
+    tmp = f"{filepath}.{os.getpid()}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, filepath)
 
 def init_game_state(total=50):
     if not os.path.exists(DATA_FILE):
@@ -62,26 +69,20 @@ def init_game_state(total=50):
             "submissions": {},
             "hall_of_fame": [],
             "quiz_order": random.sample(range(total), total),
-            "connected_users": {}
         }
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(default_state, f, ensure_ascii=False)
+        _atomic_write(DATA_FILE, default_state)
 
 def load_state():
-    for _ in range(5):  # 충돌 시 최대 5회 재시도
+    for _ in range(5):
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
-                content = f.read()
-            state = json.loads(content)
+                state = json.loads(f.read())
             if "quiz_order" not in state:
                 state["quiz_order"] = random.sample(range(50), 50)
                 save_state(state)
-            if "connected_users" not in state:
-                state["connected_users"] = {}
             return state
         except (json.JSONDecodeError, FileNotFoundError):
             time.sleep(0.1)
-    # 모두 실패하면 초기화
     if os.path.exists(DATA_FILE):
         os.remove(DATA_FILE)
     init_game_state()
@@ -89,13 +90,27 @@ def load_state():
         return json.load(f)
 
 def save_state(state):
-    # 프로세스별 고유 임시 파일 사용 → 동시 쓰기 충돌 완전 방지
-    tmp = f"{DATA_FILE}.{os.getpid()}.tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=4)
-    os.replace(tmp, DATA_FILE)
+    _atomic_write(DATA_FILE, state)
 
-init_game_state() # 시작 시 파일 초기화 확인
+# ── heartbeat: 게임 상태와 완전 분리 ──
+def load_heartbeat():
+    try:
+        with open(HEARTBEAT_FILE, "r", encoding="utf-8") as f:
+            return json.loads(f.read())
+    except Exception:
+        return {}
+
+def save_heartbeat(uid, name):
+    for _ in range(3):
+        try:
+            hb = load_heartbeat()
+            hb[uid] = {"name": name, "last_seen": time.time()}
+            _atomic_write(HEARTBEAT_FILE, hb)
+            return
+        except Exception:
+            time.sleep(0.05)
+
+init_game_state()
 
 # --- 2. 기본 설정 및 포켓몬 데이터 ---
 st.set_page_config(page_title="가족 초청 포켓몬 퀴즈!", page_icon="⚡", layout="wide")
@@ -272,13 +287,9 @@ elif st.session_state.role == "admin":
         with col_reset:
             st.write("")
             if st.button("🔄 전체 초기화", type="secondary"):
-                connected_backup = state.get("connected_users", {})
                 if os.path.exists(DATA_FILE):
                     os.remove(DATA_FILE)
                 init_game_state(len(pokemon_db))
-                new_state = load_state()
-                new_state["connected_users"] = connected_backup
-                save_state(new_state)
                 st.rerun()
 
         if state["zoom_level"] == 3:
@@ -322,10 +333,10 @@ elif st.session_state.role == "admin":
                 st.rerun()
 
     with right:
-        # 접속자 목록 (10초 이내 heartbeat 기록된 유저)
-        connected = state.get("connected_users", {})
+        # 접속자 목록 (heartbeat 파일 기준, 15초 이내)
+        connected = load_heartbeat()
         now = time.time()
-        active_users = {uid: v for uid, v in connected.items() if now - v.get("last_seen", 0) < 10}
+        active_users = {uid: v for uid, v in connected.items() if now - v.get("last_seen", 0) < 15}
 
         # 현재 문제 정답 제출한 유저 ID 목록
         submitted_ids = {sub["id"] for sub in submissions}
@@ -401,18 +412,15 @@ elif st.session_state.role == "player":
     # 3초마다 자동 새로고침 (관리자가 다음 문제로 넘어가면 자동 반영)
     st_autorefresh(interval=3000, key="player_refresh")
 
-    # 최신 상태를 불러와서 현재 문제 번호 확인
+    # 최신 상태를 불러오기 (읽기만 — 게임 상태 파일 쓰기 없음)
     state = load_state()
     current_q_idx = state["current_q"]
 
-    # 접속 중 heartbeat 기록
-    if "connected_users" not in state:
-        state["connected_users"] = {}
-    state["connected_users"][st.session_state.user_id] = {
-        "name": st.session_state.user_name,
-        "last_seen": time.time()
-    }
-    save_state(state)
+    # heartbeat: 별도 파일에 8초에 한 번만 기록 (충돌 최소화)
+    now = time.time()
+    if now - st.session_state.get("last_hb", 0) > 8:
+        save_heartbeat(st.session_state.user_id, st.session_state.user_name)
+        st.session_state.last_hb = now
 
     # 참가자 UI 헤더
     st.title("모바일 답안 입력기 📱")
