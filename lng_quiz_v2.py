@@ -7,15 +7,53 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="포켓몬 퀴즈 (발표용)", page_icon="⚡", layout="wide")
 
+# ── 전체화면 최적화 CSS ──
+st.markdown("""
+<style>
+/* 상하 여백 최소화 */
+.block-container {
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.2rem !important;
+}
+/* 제목 크기 축소 */
+h1 { font-size: 1.5rem !important; margin: 0 0 0.3rem 0 !important; line-height: 1.2 !important; }
+h3 { font-size: 0.95rem !important; margin: 0.2rem 0 !important; }
+/* 이미지 최대 높이 제한 (뷰포트의 55%) */
+[data-testid="stImage"] img {
+    max-height: 55vh !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block;
+}
+/* 버튼 여백 축소 */
+.stButton > button {
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.85rem !important;
+    height: auto !important;
+}
+/* 구분선 여백 */
+hr { margin: 0.3rem 0 !important; }
+/* info 박스 여백 */
+.stAlert { padding: 0.4rem 0.8rem !important; margin: 0.2rem 0 !important; }
+/* metric 축소 */
+[data-testid="stMetricValue"] { font-size: 1.3rem !important; }
+[data-testid="stMetricLabel"] { font-size: 0.8rem !important; }
+/* column 간격 */
+[data-testid="column"] { padding: 0 0.5rem !important; }
+/* progress bar 여백 */
+.stProgress { margin: 0.3rem 0 !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # ── 배경음악 ──
 _MUSIC_URL = (
     "https://raw.githubusercontent.com/dalia8503-oss/lng_0517/main/"
     "%EC%9A%B0%EB%A6%AC%EB%8A%94%20%EB%AA%A8%EB%91%90%20%EC%B9%9C%EA%B5%AC.mp3"
 )
 components.html(f"""
-    <style>body{{margin:0;padding:4px;background:transparent;}}
-    #btn{{display:none;padding:7px 16px;background:#2563eb;color:#fff;
-          border:none;border-radius:20px;cursor:pointer;font-size:13px;}}</style>
+    <style>body{{margin:0;padding:2px;background:transparent;}}
+    #btn{{display:none;padding:5px 14px;background:#2563eb;color:#fff;
+          border:none;border-radius:16px;cursor:pointer;font-size:12px;}}</style>
     <audio id="bgm" loop><source src="{_MUSIC_URL}" type="audio/mp3"></audio>
     <button id="btn" onclick="document.getElementById('bgm').play();this.style.display='none';">
       🎵 음악 켜기</button>
@@ -24,7 +62,7 @@ components.html(f"""
         document.getElementById('btn').style.display='inline-block';
       }});
     </script>
-""", height=50)
+""", height=36)
 
 # ── 포켓몬 데이터 ──
 pokemon_db = [
@@ -107,75 +145,70 @@ def get_pokemon_image(pokemon_id, zoom_level):
     except Exception:
         return None
 
+def do_reset():
+    st.session_state.q_idx = 0
+    st.session_state.zoom = 1
+    st.session_state.show_hint = False
+    st.session_state.quiz_order = random.sample(range(len(pokemon_db)), len(pokemon_db))
+
 # ── 퀴즈 종료 ──
 if st.session_state.q_idx >= len(pokemon_db):
     st.title("🎉 모든 문제가 끝났습니다!")
     if st.button("처음부터 다시"):
-        st.session_state.q_idx = 0
-        st.session_state.zoom = 1
-        st.session_state.show_hint = False
-        st.session_state.quiz_order = random.sample(range(len(pokemon_db)), len(pokemon_db))
+        do_reset()
         st.rerun()
     st.stop()
 
 pokemon = pokemon_db[st.session_state.quiz_order[st.session_state.q_idx]]
 
-# ── 레이아웃 ──
-left, right = st.columns([3, 1])
+# ── 레이아웃: 왼쪽(문제) / 오른쪽(진행 현황) ──
+left, right = st.columns([4, 1])
 
 with left:
-    # 정답 공개 배너
+    # 정답 배너 + 제목 한 줄에
     if st.session_state.zoom == 3:
         st.markdown(
-            f"<div style='background:#166534;color:#bbf7d0;border-radius:10px;"
-            f"padding:8px 16px;font-size:1.3rem;font-weight:700;margin-bottom:8px;'>"
+            f"<div style='background:#166534;color:#bbf7d0;border-radius:8px;"
+            f"padding:5px 14px;font-size:1.15rem;font-weight:700;margin-bottom:4px;'>"
             f"🎉 정답: {pokemon['name']}</div>",
             unsafe_allow_html=True
         )
-
-    st.title(f"🔍 [문제 {st.session_state.q_idx + 1} / {len(pokemon_db)}] 이게 누구게?")
+    st.title(f"🔍 [{st.session_state.q_idx + 1}/{len(pokemon_db)}] 이게 누구게?")
 
     img = get_pokemon_image(pokemon["id"], st.session_state.zoom)
     if img:
-        img_col, _ = st.columns([3.2, 1.8])
-        with img_col:
-            st.image(img, use_column_width=True)
+        st.image(img)   # CSS max-height:55vh 로 제한됨
 
     if st.session_state.show_hint:
-        st.info(f"💡 힌트: {pokemon['hint']}")
+        st.info(f"💡 {pokemon['hint']}")
 
     st.markdown("---")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        if st.button("🔍 조금만 더 보여줄까요~?"):
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        if st.button("🔍 조금만 더 보여줄까요~?", use_container_width=True):
             if st.session_state.zoom < 3:
                 st.session_state.zoom += 1
                 st.session_state.show_hint = False
                 st.rerun()
-    with col2:
-        if st.button("💡 힌트 좀 드릴까요~?!"):
+    with c2:
+        if st.button("💡 힌트 좀 드릴까요~?!", use_container_width=True):
             st.session_state.show_hint = True
             st.rerun()
-    with col3:
-        if st.button("▶️ 다음은 누구일까요?!"):
+    with c3:
+        if st.button("▶️ 다음은 누구일까요?!", use_container_width=True):
             st.session_state.q_idx += 1
             st.session_state.zoom = 1
             st.session_state.show_hint = False
             st.rerun()
-    with col4:
-        if st.button("🔄 처음으로"):
-            st.session_state.q_idx = 0
-            st.session_state.zoom = 1
-            st.session_state.show_hint = False
-            st.session_state.quiz_order = random.sample(range(len(pokemon_db)), len(pokemon_db))
+    with c4:
+        if st.button("🔄 처음으로", use_container_width=True):
+            do_reset()
             st.rerun()
 
 with right:
     st.markdown("### 진행 현황")
-    st.metric("현재 문제", f"{st.session_state.q_idx + 1} / {len(pokemon_db)}")
-    progress = st.session_state.q_idx / len(pokemon_db)
-    st.progress(progress)
-    st.markdown("---")
-    st.markdown("**남은 문제**")
-    remaining = len(pokemon_db) - st.session_state.q_idx - 1
-    st.metric("", f"{remaining}문제")
+    total = len(pokemon_db)
+    idx   = st.session_state.q_idx
+    st.metric("현재", f"{idx + 1} / {total}")
+    st.progress(idx / total)
+    st.metric("남은 문제", f"{total - idx - 1}문제")
