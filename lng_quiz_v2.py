@@ -21,7 +21,7 @@ h3 { font-size: 0.95rem !important; margin: 0.2rem 0 !important; }
 /* 이미지 최대 높이 제한 (뷰포트의 55%) */
 [data-testid="stImage"] img {
     max-height: 55vh !important;
-    width: auto !important;
+    width: 100% !important;
     object-fit: contain !important;
     display: block;
 }
