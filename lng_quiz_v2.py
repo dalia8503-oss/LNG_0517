@@ -177,7 +177,7 @@ with left:
 
     img = get_pokemon_image(pokemon["id"], st.session_state.zoom)
     if img:
-        st.image(img)   # CSS max-height:55vh 로 제한됨
+        st.image(img, use_column_width=True)
 
     if st.session_state.show_hint:
         st.info(f"💡 {pokemon['hint']}")
