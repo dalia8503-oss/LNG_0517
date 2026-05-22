@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import random
 from PIL import Image
 from io import BytesIO
 import streamlit.components.v1 as components
@@ -86,6 +87,8 @@ if "zoom" not in st.session_state:
     st.session_state.zoom = 1
 if "show_hint" not in st.session_state:
     st.session_state.show_hint = False
+if "quiz_order" not in st.session_state:
+    st.session_state.quiz_order = random.sample(range(len(pokemon_db)), len(pokemon_db))
 
 @st.cache_data
 def get_pokemon_image(pokemon_id, zoom_level):
@@ -111,10 +114,11 @@ if st.session_state.q_idx >= len(pokemon_db):
         st.session_state.q_idx = 0
         st.session_state.zoom = 1
         st.session_state.show_hint = False
+        st.session_state.quiz_order = random.sample(range(len(pokemon_db)), len(pokemon_db))
         st.rerun()
     st.stop()
 
-pokemon = pokemon_db[st.session_state.q_idx]
+pokemon = pokemon_db[st.session_state.quiz_order[st.session_state.q_idx]]
 
 # ── 레이아웃 ──
 left, right = st.columns([3, 1])
@@ -163,6 +167,7 @@ with left:
             st.session_state.q_idx = 0
             st.session_state.zoom = 1
             st.session_state.show_hint = False
+            st.session_state.quiz_order = random.sample(range(len(pokemon_db)), len(pokemon_db))
             st.rerun()
 
 with right:
