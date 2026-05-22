@@ -138,9 +138,11 @@ def get_pokemon_image(pokemon_id, zoom_level):
         img = Image.alpha_composite(bg, img).convert("RGB")
         w, h = img.size
         if zoom_level == 1:
-            return img.crop((w * 0.425, h * 0.425, w * 0.575, h * 0.575))
+            cropped = img.crop((w * 0.425, h * 0.425, w * 0.575, h * 0.575))
+            return cropped.resize((w, h), Image.LANCZOS)
         elif zoom_level == 2:
-            return img.crop((w * 0.3, h * 0.3, w * 0.7, h * 0.7))
+            cropped = img.crop((w * 0.3, h * 0.3, w * 0.7, h * 0.7))
+            return cropped.resize((w, h), Image.LANCZOS)
         return img
     except Exception:
         return None
